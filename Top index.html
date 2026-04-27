@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top-Down Goal & Commission Calculator | David Allen Capital, Inc.</title>
+  <meta
+    name="description"
+    content="Premium top-down goal and commission calculator for DAC-style funding conversations, built around exact backend math and premium local consulting UX."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --dac-blue: #2C5EBA;
+      --dac-green: #5EE48C;
+      --ink: #0e1726;
+      --ink-soft: #4c5870;
+      --line: rgba(13, 23, 38, 0.1);
+      --card: rgba(255, 255, 255, 0.82);
+      --card-strong: rgba(255, 255, 255, 0.94);
+      --bg: #eef3fb;
+      --shadow: 0 24px 70px rgba(21, 42, 84, 0.14);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 16px;
+      --header-font: "Montserrat", sans-serif;
+      --body-font: "Inter", "Montserrat", sans-serif;
+      --lane-accent: var(--dac-green);
+      --lane-bg: rgba(94, 228, 140, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--body-font);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(44, 94, 186, 0.18), transparent 32%),
+        radial-gradient(circle at top right, rgba(94, 228, 140, 0.16), transparent 28%),
+        linear-gradient(180deg, #f7faff 0%, #edf3fc 55%, #f7fbff 100%);
+      min-height: 100vh;
+    }
+
+    img { max-width: 100%; display: block; }
+
+    .container {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .section {
+      padding: 34px 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--dac-blue);
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 36px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--dac-green);
+    }
+
+    h1, h2, h3, h4, .metric-value, .button, .pill, .lane-title, .header-brand-text {
+      font-family: var(--header-font);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    h1 {
+      font-size: clamp(2.35rem, 5vw, 4.6rem);
+      line-height: 0.94;
+      margin: 0 0 14px;
+    }
+
+    h2 {
+      font-size: clamp(1.65rem, 3vw, 2.7rem);
+      line-height: 1;
+      margin: 0 0 12px;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      line-height: 1.05;
+      margin: 0 0 10px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--ink-soft);
+      line-height: 1.65;
+      font-size: 1rem;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(18px);
+      background: rgba(246, 250, 255, 0.82);
+      border-bottom: 1px solid rgba(44, 94, 186, 0.08);
+    }
+
+    .header-inner {
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo-crop {
+      width: 214px;
+      height: 82px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 8px 30px rgba(19, 43, 86, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      flex: 0 0 auto;
+      position: relative;
+    }
+
+    .logo-crop img {
+      width: 520px;
+      max-width: none;
+      transform: translate(-54px, -12px);
+      transform-origin: top left;
+    }
+
+    .header-brand-text {
+      font-size: 0.95rem;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 360px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button,
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-size: 0.96rem;
+      cursor: pointer;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .button:hover,
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, #69ee95, #49d77a);
+      color: #07210f;
+      box-shadow: 0 18px 38px rgba(94, 228, 140, 0.35);
+    }
+
+    .button-secondary {
+      background: rgba(44, 94, 186, 0.1);
+      color: var(--dac-blue);
+    }
+
+    .hero {
+      padding: 42px 0 28px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .glass-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-main {
+      padding: 34px;
+      position: relative;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.96), rgba(248, 251, 255, 0.84)),
+        linear-gradient(135deg, rgba(44, 94, 186, 0.08), rgba(94, 228, 140, 0.06));
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      inset: auto -100px -100px auto;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(44,94,186,0.12), transparent 65%);
+      pointer-events: none;
+    }
+
+    .geo-bar {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: rgba(44, 94, 186, 0.08);
+      border: 1px solid rgba(44, 94, 186, 0.08);
+      border-radius: 999px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      color: var(--dac-blue);
+      font-weight: 700;
+    }
+
+    .town-input {
+      border: 0;
+      outline: 0;
+      background: rgba(255,255,255,0.86);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 9px 12px;
+      min-width: 150px;
+      font-weight: 700;
+      font-family: var(--body-font);
+      box-shadow: inset 0 0 0 1px rgba(44, 94, 186, 0.08);
+    }
+
+    .hero-copy {
+      max-width: 760px;
+    }
+
+    .trust-copy {
+      margin-top: 16px;
+      font-size: 1.05rem;
+      color: var(--ink);
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(44, 94, 186, 0.07), rgba(94, 228, 140, 0.08));
+      border: 1px solid rgba(44, 94, 186, 0.08);
+    }
+
+    .hero-actions {
+      margin-top: 22px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-side {
+      background: linear-gradient(180deg, rgba(44, 94, 186, 0.98), rgba(23, 52, 111, 0.98));
+      color: #f2f7ff;
+      padding: 30px;
+      position: relative;
+    }
+
+    .hero-side p {
+      color: rgba(242, 247, 255, 0.78);
+    }
+
+    .summary-stack {
+      margin-top: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .summary-card {
+      padding: 18px 18px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .summary-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      opacity: 0.74;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .summary-value {
+      font-family: var(--header-font);
+      font-size: clamp(1.4rem, 3vw, 2.15rem);
+      font-weight: 800;
+      line-height: 0.95;
+    }
+
+    .summary-subtext {
+      margin-top: 8px;
+      font-size: 0.92rem;
+      color: rgba(242, 247, 255, 0.7);
+    }
+
+    .controls-shell {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 28px;
+      background: var(--card-strong);
+      border: 1px solid rgba(44, 94, 186, 0.08);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-blue {
+      background: linear-gradient(180deg, rgba(44, 94, 186, 0.95), rgba(32, 67, 132, 0.95));
+      color: #f1f6ff;
+      border-color: rgba(255,255,255,0.08);
+    }
+
+    .panel-blue p,
+    .panel-blue .field-label,
+    .panel-blue .minor {
+      color: rgba(241, 246, 255, 0.78);
+    }
+
+    .control-group + .control-group {
+      margin-top: 24px;
+    }
+
+    .field-top {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .field-value {
+      font-family: var(--header-font);
+      font-size: 1.55rem;
+      line-height: 1;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .panel-blue .field-value {
+      color: #fff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, var(--dac-blue), var(--dac-green));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, var(--dac-blue), var(--dac-green));
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid var(--dac-green);
+      margin-top: -7px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #fff;
+      border: 4px solid var(--dac-green);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    .minor {
+      margin-top: 10px;
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+    }
+
+    .segmented {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      border: 1px solid rgba(44, 94, 186, 0.12);
+      background: rgba(44, 94, 186, 0.05);
+      color: var(--dac-blue);
+      padding: 11px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      transition: 0.2s ease;
+    }
+
+    .pill.active {
+      background: var(--dac-blue);
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(44, 94, 186, 0.22);
+    }
+
+    .lane-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--lane-bg);
+      color: var(--lane-accent);
+      font-family: var(--header-font);
+      font-weight: 800;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(94, 228, 140, 0.25);
+    }
+
+    .lane-badge::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.08);
+    }
+
+    .lane-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .lane-stat {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .lane-title {
+      font-size: 1.75rem;
+      line-height: 0.95;
+      margin-top: 16px;
+      margin-bottom: 10px;
+    }
+
+    .lane-kicker {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: rgba(241,246,255,0.84);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .lane-stat-label {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      opacity: 0.7;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .lane-stat-value {
+      font-family: var(--header-font);
+      font-size: 1.05rem;
+      line-height: 1.05;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .metric-card {
+      padding: 20px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(249, 252, 255, 0.95));
+      border: 1px solid rgba(44, 94, 186, 0.08);
+      min-height: 156px;
+    }
+
+    .metric-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--dac-blue);
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .metric-value {
+      font-size: clamp(1.45rem, 2.5vw, 2.4rem);
+      line-height: 0.95;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+
+    .metric-note {
+      font-size: 0.92rem;
+      color: var(--ink-soft);
+      line-height: 1.45;
+    }
+
+    .visualizer {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .cost-panel {
+      padding: 30px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248, 252, 255, 0.96));
+      border: 1px solid rgba(44, 94, 186, 0.08);
+      box-shadow: var(--shadow);
+    }
+
+    .cost-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .cost-card {
+      padding: 20px;
+      border-radius: 22px;
+      border: 1px solid rgba(44, 94, 186, 0.08);
+      background: rgba(255,255,255,0.75);
+    }
+
+    .cost-card.highlight {
+      background: linear-gradient(135deg, rgba(94, 228, 140, 0.18), rgba(255,255,255,0.9));
+      border-color: rgba(94, 228, 140, 0.4);
+    }
+
+    .cost-band {
+      font-family: var(--header-font);
+      font-size: 2rem;
+      line-height: 0.95;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+
+    .repay-number {
+      font-family: var(--header-font);
+      font-size: 2.3rem;
+      line-height: 0.95;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+
+    .micro-copy {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: var(--ink-soft);
+    }
+
+    .cta-strip {
+      margin-top: 22px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .cta-large {
+      min-height: 62px;
+      padding-inline: 28px;
+      font-size: 1rem;
+    }
+
+    .footer {
+      margin-top: 20px;
+      padding: 28px 0 40px;
+    }
+
+    .footer-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px;
+      background: rgba(10, 20, 36, 0.96);
+      color: rgba(255,255,255,0.82);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .footer-card p {
+      color: rgba(255,255,255,0.74);
+      max-width: 720px;
+    }
+
+    .footer-logo {
+      width: 214px;
+      height: 82px;
+      overflow: hidden;
+      border-radius: 12px;
+      flex: 0 0 auto;
+      background: #fff;
+    }
+
+    .footer-logo img {
+      width: 520px;
+      max-width: none;
+      transform: translate(-54px, -12px);
+      transform-origin: top left;
+    }
+
+    .quiet {
+      font-size: 0.86rem;
+      color: var(--ink-soft);
+    }
+
+    .loading-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--dac-green);
+      margin-right: 8px;
+      box-shadow: 0 0 0 0 rgba(94, 228, 140, 0.6);
+      animation: pulse 1.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(94, 228, 140, 0.55); }
+      70% { box-shadow: 0 0 0 10px rgba(94, 228, 140, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(94, 228, 140, 0); }
+    }
+
+    @media (max-width: 1080px) {
+      .hero-grid,
+      .controls-shell,
+      .visualizer {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        width: min(100% - 20px, 1180px);
+      }
+
+      .header-inner {
+        min-height: auto;
+        padding: 10px 0;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .brand-wrap {
+        justify-content: center;
+      }
+
+      .header-actions {
+        justify-content: stretch;
+      }
+
+      .header-actions .button {
+        width: 100%;
+      }
+
+      .hero-main,
+      .hero-side,
+      .panel,
+      .cost-panel {
+        padding: 22px;
+      }
+
+      .logo-crop,
+      .footer-logo {
+        width: 180px;
+        height: 70px;
+      }
+
+      .logo-crop img,
+      .footer-logo img {
+        width: 438px;
+        transform: translate(-45px, -12px);
+      }
+
+      .lane-grid,
+      .cost-grid,
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .geo-bar {
+        border-radius: 22px;
+      }
+
+      .town-input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-wrap">
+        <div class="logo-crop" aria-label="David Allen Capital, Inc. Independent Broker logo">
+          <img src="Brand Style Guide.png" alt="David Allen Capital, Inc. Independent Broker logo" />
+        </div>
+        <div class="header-brand-text">David Allen Capital, Inc. Independent Broker</div>
+      </div>
+      <div class="header-actions">
+        <a class="button button-secondary" href="#calculator">See the math</a>
+        <a class="button button-primary" href="#cost-benefit">Do The Benefits Outweigh The Costs?</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="glass-card hero-main">
+          <div class="geo-bar">
+            <span id="geoText">Based in Your Town | Serving surrounding communities</span>
+            <input id="townInput" class="town-input" type="text" value="Your Town" aria-label="Town" />
+          </div>
+
+          <div class="eyebrow">Trust before transactions</div>
+          <h1>Top-Down Goal &amp; Commission Calculator</h1>
+          <div class="hero-copy">
+            <p>
+              Premium funding math for serious local conversations. Start with your income target, back into the
+              required bonus revenue, and see how many owner conversations it realistically takes to get there.
+            </p>
+            <div class="trust-copy">
+              If a bank has ever said no or left you confused about your funding options, you're not alone.
+              We help when the bank can't.
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="button button-primary" href="#calculator">Run my numbers</a>
+            <a class="button button-secondary" href="#funding-lane">See funding lane</a>
+          </div>
+        </div>
+
+        <aside class="glass-card hero-side">
+          <div class="lane-badge"><span class="loading-dot"></span><span id="heroLaneBadge">BankBreezy Bigger Funding</span></div>
+          <div class="lane-title" id="heroLaneTitle">Move from guesswork to a real monthly target.</div>
+          <p id="heroLaneBody">
+            This dashboard automatically changes lanes based on lowest monthly revenue in the last 90 days.
+          </p>
+
+          <div class="summary-stack">
+            <div class="summary-card">
+              <div class="summary-label">Target personal bonus revenue</div>
+              <div class="summary-value" id="summaryTpbr">$20,000</div>
+              <div class="summary-subtext">Exact formula: desired income ÷ commission tier.</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Required funded clients</div>
+              <div class="summary-value" id="summaryClients">5.00</div>
+              <div class="summary-subtext">Exact formula: TPBR ÷ $4,000 average bonus revenue.</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Owner conversations</div>
+              <div class="summary-value" id="summaryConvos">400</div>
+              <div class="summary-subtext">Exact formula: clients × 80 owner conversations.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="calculator" class="section">
+      <div class="container controls-shell">
+        <div class="panel">
+          <div class="eyebrow">Interactive inputs</div>
+          <h2>Dial in the target</h2>
+          <p>
+            Use the sliders. The calculator runs the DAC-style top-down math in real time and updates the funding lane instantly.
+          </p>
+
+          <div class="control-group">
+            <div class="field-top">
+              <div class="field-label">Desired Monthly Income</div>
+              <div class="field-value" id="incomeValue">$10,000</div>
+            </div>
+            <input id="incomeRange" type="range" min="1000" max="50000" step="250" value="10000" />
+            <div class="minor">Set the monthly income target you want this calculator to reverse-engineer.</div>
+          </div>
+
+          <div class="control-group">
+            <div class="field-top">
+              <div class="field-label">Lowest monthly revenue in last 90 days</div>
+              <div class="field-value" id="revenueValue">$25,000</div>
+            </div>
+            <input id="revenueRange" type="range" min="1000" max="200000" step="500" value="25000" />
+            <div class="minor">Under $15,000/month shifts the recommendation toward Giggle Instant Micro-Funding.</div>
+          </div>
+
+          <div class="control-group">
+            <div class="field-top">
+              <div class="field-label">Commission Tier</div>
+              <div class="field-value" id="tierValue">50%</div>
+            </div>
+            <input id="tierRange" type="range" min="10" max="80" step="2.5" value="50" />
+            <div class="minor">Supports 10% through 80% with quarter-step precision where needed.</div>
+          </div>
+
+          <div class="control-group">
+            <div class="field-label">Business age</div>
+            <div class="segmented" id="ageSegment">
+              <button class="pill" type="button" data-age="<1">&lt; 1 year</button>
+              <button class="pill active" type="button" data-age="1-2">1-2 years</button>
+              <button class="pill" type="button" data-age="2+">2+ years</button>
+            </div>
+            <div class="minor">This changes repayment visuals and the estimated approval band for the BankBreezy lane.</div>
+          </div>
+        </div>
+
+        <div id="funding-lane" class="panel panel-blue">
+          <div class="eyebrow" style="color:#bcd0ff;">Dynamic funding lane</div>
+          <h2 id="laneHeading">BankBreezy Bigger Funding</h2>
+          <p id="laneSummary">
+            For files at $15,000+ monthly revenue, the interface pivots to bigger-funding math, lower-risk repayment framing, and stronger trust signals.
+          </p>
+
+          <div style="margin-top:18px;" class="lane-kicker" id="laneKicker">Revenue-triggered recommendation</div>
+          <div class="lane-grid">
+            <div class="lane-stat">
+              <div class="lane-stat-label">Approval / fit cue</div>
+              <div class="lane-stat-value" id="laneMetricOne">$15k+ monthly revenue</div>
+            </div>
+            <div class="lane-stat">
+              <div class="lane-stat-label">Commissionable bonus revenue</div>
+              <div class="lane-stat-value" id="laneMetricTwo">≈ 10% of funding</div>
+            </div>
+            <div class="lane-stat">
+              <div class="lane-stat-label">Payout timing</div>
+              <div class="lane-stat-value" id="laneMetricThree">1-7 days, usually next day</div>
+            </div>
+            <div class="lane-stat">
+              <div class="lane-stat-label">Estimated approval band</div>
+              <div class="lane-stat-value" id="laneMetricFour">$25,000</div>
+            </div>
+          </div>
+
+          <div class="cta-strip">
+            <a href="#cost-benefit" class="button button-primary">Do The Benefits Outweigh The Costs?</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="eyebrow">Hidden backend math engine</div>
+        <h2>Your monthly production picture</h2>
+        <p>
+          These are the exact top-down outputs that matter: personal bonus revenue needed, client count, and owner conversations required.
+        </p>
+
+        <div class="results-grid">
+          <div class="metric-card">
+            <div class="metric-label">Desired Monthly Income</div>
+            <div class="metric-value" id="cardIncome">$10,000</div>
+            <div class="metric-note">Your top-line personal income target before reverse engineering the funnel.</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">TPBR Needed</div>
+            <div class="metric-value" id="cardTpbr">$20,000</div>
+            <div class="metric-note">Total Personal Bonus Revenue needed from the formula: income ÷ tier.</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Required Clients</div>
+            <div class="metric-value" id="cardClients">5.00</div>
+            <div class="metric-note" id="cardClientsNote">Rounded-up operational target: 5 clients.</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">Owner Conversations</div>
+            <div class="metric-value" id="cardConvos">400</div>
+            <div class="metric-note" id="cardConvosNote">Rounded-up operational target: 400 conversations.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cost-benefit" class="section">
+      <div class="container visualizer">
+        <div class="cost-panel">
+          <div class="eyebrow">Cost-benefit visualizer</div>
+          <h2>Repayment expectations</h2>
+          <p>
+            Set the business age and revenue. The repayment range, estimated approval amount, and lane framing update automatically.
+          </p>
+
+          <div class="cost-grid">
+            <div class="cost-card highlight">
+              <div class="metric-label">Estimated approval amount</div>
+              <div class="repay-number" id="approvalEstimate">$25,000</div>
+              <p class="micro-copy" id="approvalNote">Based on current revenue and business age selection.</p>
+            </div>
+
+            <div class="cost-card">
+              <div class="metric-label">Illustrative repayment</div>
+              <div class="repay-number" id="repaymentExample">$31,500 - $37,250</div>
+              <p class="micro-copy" id="repaymentNote">Built from the age-based repayment multiplier band shown below.</p>
+            </div>
+          </div>
+
+          <div class="cta-strip">
+            <a class="button button-primary cta-large" href="#footerDisclaimer">Do The Benefits Outweigh The Costs?</a>
+          </div>
+        </div>
+
+        <div class="cost-panel">
+          <div class="cost-grid">
+            <div class="cost-card" id="establishedCard">
+              <div class="metric-label">Established business</div>
+              <div class="cost-band">1.15x - 1.25x</div>
+              <p>For 2+ years in business. Lower-risk files, lower repayment cost framing.</p>
+            </div>
+
+            <div class="cost-card" id="newerCard">
+              <div class="metric-label">Newer business</div>
+              <div class="cost-band">1.26x - 1.49x</div>
+              <p>For businesses under 2 years. Higher-risk files carry a wider repayment band.</p>
+            </div>
+
+            <div class="cost-card">
+              <div class="metric-label">BankBreezy lane</div>
+              <div class="cost-band">Bigger funding</div>
+              <p>At $15,000+ monthly revenue, show bigger-funding logic with stronger approval and repayment framing.</p>
+            </div>
+
+            <div class="cost-card">
+              <div class="metric-label">Giggle lane</div>
+              <div class="cost-band">Instant micro-funding</div>
+              <p>Under $15,000 monthly revenue, move attention to faster small-dollar micro-funding positioning.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" id="footerDisclaimer">
+    <div class="container">
+      <div class="footer-card">
+        <div>
+          <p>
+            All examples and scenarios shown are for illustration and mathematical demonstration purposes only.
+            Earnings depend on personal effort, skill, and market conditions. No income is earned without acquiring customers.
+          </p>
+          <div class="quiet" style="margin-top:10px;">David Allen Capital, Inc. Independent Broker</div>
+        </div>
+
+        <div class="footer-logo" aria-label="David Allen Capital, Inc. Independent Broker logo">
+          <img src="Brand Style Guide.png" alt="David Allen Capital, Inc. Independent Broker logo" />
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const state = {
+      desiredMonthlyIncome: 10000,
+      lowestMonthlyRevenue: 25000,
+      commissionTier: 50,
+      businessAge: "1-2"
+    };
+
+    const els = {
+      townInput: document.getElementById("townInput"),
+      geoText: document.getElementById("geoText"),
+
+      incomeRange: document.getElementById("incomeRange"),
+      revenueRange: document.getElementById("revenueRange"),
+      tierRange: document.getElementById("tierRange"),
+
+      incomeValue: document.getElementById("incomeValue"),
+      revenueValue: document.getElementById("revenueValue"),
+      tierValue: document.getElementById("tierValue"),
+
+      summaryTpbr: document.getElementById("summaryTpbr"),
+      summaryClients: document.getElementById("summaryClients"),
+      summaryConvos: document.getElementById("summaryConvos"),
+
+      cardIncome: document.getElementById("cardIncome"),
+      cardTpbr: document.getElementById("cardTpbr"),
+      cardClients: document.getElementById("cardClients"),
+      cardConvos: document.getElementById("cardConvos"),
+      cardClientsNote: document.getElementById("cardClientsNote"),
+      cardConvosNote: document.getElementById("cardConvosNote"),
+
+      laneHeading: document.getElementById("laneHeading"),
+      laneSummary: document.getElementById("laneSummary"),
+      laneKicker: document.getElementById("laneKicker"),
+      laneMetricOne: document.getElementById("laneMetricOne"),
+      laneMetricTwo: document.getElementById("laneMetricTwo"),
+      laneMetricThree: document.getElementById("laneMetricThree"),
+      laneMetricFour: document.getElementById("laneMetricFour"),
+
+      heroLaneBadge: document.getElementById("heroLaneBadge"),
+      heroLaneTitle: document.getElementById("heroLaneTitle"),
+      heroLaneBody: document.getElementById("heroLaneBody"),
+
+      approvalEstimate: document.getElementById("approvalEstimate"),
+      approvalNote: document.getElementById("approvalNote"),
+      repaymentExample: document.getElementById("repaymentExample"),
+      repaymentNote: document.getElementById("repaymentNote"),
+
+      ageButtons: [...document.querySelectorAll("#ageSegment .pill")],
+      establishedCard: document.getElementById("establishedCard"),
+      newerCard: document.getElementById("newerCard")
+    };
+
+    function formatCurrency(value, digits = 0) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+    }
+
+    function formatNumber(value, digits = 2) {
+      return new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      }).format(value);
+    }
+
+    function getApprovalEstimate(revenue, businessAge) {
+      if (businessAge === "<1") return revenue * 0.5;
+      if (businessAge === "1-2") return revenue * 1;
+      return revenue * 1.5;
+    }
+
+    function getRepaymentBand(businessAge) {
+      if (businessAge === "2+") return { min: 1.15, max: 1.25, label: "Established business cost band" };
+      return { min: 1.26, max: 1.49, label: "Newer business cost band" };
+    }
+
+    function determineFundingLane(revenue, businessAge) {
+      const approval = getApprovalEstimate(revenue, businessAge);
+
+      if (revenue < 15000) {
+        return {
+          lane: "giggle",
+          heading: "Giggle Instant Approval",
+          heroTitle: "Smaller-revenue files need faster, lower-friction positioning.",
+          heroBody: "At under $15,000/month, pivot the experience toward instant micro-funding logic instead of bigger-funding expectations.",
+          summary:
+            "This file falls below the $15,000 monthly revenue threshold, so the interface shifts into Giggle Instant Micro-Funding mode.",
+          badge: "Giggle Instant Approval",
+          kicker: "Revenue under $15,000/month",
+          metricOne: "Under $15k monthly revenue",
+          metricTwo: "About 4-6% of funded amount",
+          metricThree: "Paid next month, 21st",
+          metricFour: formatCurrency(Math.max(revenue * 0.20, 3000)),
+          laneAccent: "#5EE48C",
+          laneBg: "rgba(94, 228, 140, 0.12)"
+        };
+      }
+
+      return {
+        lane: "bankbreezy",
+        heading: "BankBreezy Bigger Funding",
+        heroTitle: "Move from guesswork to a real monthly target.",
+        heroBody: "At $15,000+/month, the UI shifts into bigger-funding mode with stronger approval framing and repayment visibility.",
+        summary:
+          "This file clears the $15,000 monthly revenue threshold, so the interface pivots to BankBreezy-style bigger funding metrics.",
+        badge: "BankBreezy Bigger Funding",
+        kicker: "Revenue at $15,000+/month",
+        metricOne: "$15k+ monthly revenue | 550+ FICO | 6 months in business",
+        metricTwo: "≈ 10% of funding",
+        metricThree: "1-7 days, usually next day",
+        metricFour: formatCurrency(approval),
+        laneAccent: "#5EE48C",
+        laneBg: "rgba(94, 228, 140, 0.12)"
+      };
+    }
+
+    function localCalculate(payload) {
+      const tierDecimal = payload.commissionTier / 100;
+      const tpbrNeeded = payload.desiredMonthlyIncome / tierDecimal;
+      const requiredClients = tpbrNeeded / 4000;
+      const requiredOwnerConversations = requiredClients * 80;
+      const lane = determineFundingLane(payload.lowestMonthlyRevenue, payload.businessAge);
+
+      return {
+        desiredMonthlyIncome: payload.desiredMonthlyIncome,
+        commissionTier: payload.commissionTier,
+        tpbrNeeded,
+        requiredClients,
+        requiredOwnerConversations,
+        operationalClientsRoundedUp: Math.ceil(requiredClients),
+        operationalConversationsRoundedUp: Math.ceil(requiredClients) * 80,
+        lane
+      };
+    }
+
+    async function calculate(payload) {
+      try {
+        const response = await fetch("/api/calculate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Server response failed");
+        return await response.json();
+      } catch (error) {
+        return localCalculate(payload);
+      }
+    }
+
+    function syncTown() {
+      const town = (els.townInput.value || "Your Town").trim();
+      els.geoText.textContent = `Based in ${town} | Serving surrounding communities`;
+      localStorage.setItem("dacTown", town);
+    }
+
+    function updateAgeButtons() {
+      els.ageButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.age === state.businessAge);
+      });
+    }
+
+    function updateCostVisualizer(lane, revenue) {
+      const approval = getApprovalEstimate(revenue, state.businessAge);
+      const repaymentBand = getRepaymentBand(state.businessAge);
+      const minRepay = approval * repaymentBand.min;
+      const maxRepay = approval * repaymentBand.max;
+
+      els.approvalEstimate.textContent = formatCurrency(approval);
+      els.repaymentExample.textContent = `${formatCurrency(minRepay)} - ${formatCurrency(maxRepay)}`;
+      els.approvalNote.textContent =
+        state.businessAge === "2+"
+          ? "For 2+ years in business, approval illustrations can extend up to 1-2x monthly revenue."
+          : state.businessAge === "1-2"
+          ? "For 1-2 years in business, the March special illustrates up to 1x monthly revenue."
+          : "For less than 1 year in business, the March special illustrates about 50% of monthly revenue.";
+
+      els.repaymentNote.textContent = lane.lane === "giggle"
+        ? "Repayment band visual remains shown for planning, but the UI is currently prioritizing the Giggle micro-funding lane."
+        : `${repaymentBand.label}: ${repaymentBand.min.toFixed(2)}x - ${repaymentBand.max.toFixed(2)}x`;
+
+      els.establishedCard.classList.toggle("highlight", state.businessAge === "2+");
+      els.newerCard.classList.toggle("highlight", state.businessAge !== "2+");
+    }
+
+    async function render() {
+      els.incomeValue.textContent = formatCurrency(state.desiredMonthlyIncome);
+      els.revenueValue.textContent = formatCurrency(state.lowestMonthlyRevenue);
+      els.tierValue.textContent = `${formatNumber(state.commissionTier, state.commissionTier % 1 === 0 ? 0 : 1)}%`;
+
+      const result = await calculate(state);
+      const tierDigits = result.commissionTier % 1 === 0 ? 0 : 1;
+
+      els.summaryTpbr.textContent = formatCurrency(result.tpbrNeeded);
+      els.summaryClients.textContent = formatNumber(result.requiredClients, 2);
+      els.summaryConvos.textContent = formatNumber(result.requiredOwnerConversations, 0);
+
+      els.cardIncome.textContent = formatCurrency(result.desiredMonthlyIncome);
+      els.cardTpbr.textContent = formatCurrency(result.tpbrNeeded);
+      els.cardClients.textContent = formatNumber(result.requiredClients, 2);
+      els.cardConvos.textContent = formatNumber(result.requiredOwnerConversations, 0);
+
+      els.cardClientsNote.textContent = `Rounded-up operational target: ${formatNumber(result.operationalClientsRoundedUp, 0)} clients at a ${formatNumber(result.commissionTier, tierDigits)}% tier.`;
+      els.cardConvosNote.textContent = `Rounded-up operational target: ${formatNumber(result.operationalConversationsRoundedUp, 0)} owner conversations.`;
+
+      const lane = result.lane;
+      document.documentElement.style.setProperty("--lane-accent", lane.laneAccent);
+      document.documentElement.style.setProperty("--lane-bg", lane.laneBg);
+
+      els.laneHeading.textContent = lane.heading;
+      els.laneSummary.textContent = lane.summary;
+      els.laneKicker.textContent = lane.kicker;
+      els.laneMetricOne.textContent = lane.metricOne;
+      els.laneMetricTwo.textContent = lane.metricTwo;
+      els.laneMetricThree.textContent = lane.metricThree;
+      els.laneMetricFour.textContent = lane.metricFour;
+
+      els.heroLaneBadge.textContent = lane.badge;
+      els.heroLaneTitle.textContent = lane.heroTitle;
+      els.heroLaneBody.textContent = lane.heroBody;
+
+      updateCostVisualizer(lane, state.lowestMonthlyRevenue);
+      updateAgeButtons();
+    }
+
+    els.incomeRange.addEventListener("input", (event) => {
+      state.desiredMonthlyIncome = Number(event.target.value);
+      render();
+    });
+
+    els.revenueRange.addEventListener("input", (event) => {
+      state.lowestMonthlyRevenue = Number(event.target.value);
+      render();
+    });
+
+    els.tierRange.addEventListener("input", (event) => {
+      state.commissionTier = Number(event.target.value);
+      render();
+    });
+
+    els.ageButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.businessAge = button.dataset.age;
+        render();
+      });
+    });
+
+    els.townInput.addEventListener("input", syncTown);
+
+    (function boot() {
+      const savedTown = localStorage.getItem("dacTown");
+      const params = new URLSearchParams(window.location.search);
+      const townParam = params.get("town");
+
+      if (townParam) {
+        els.townInput.value = townParam;
+      } else if (savedTown) {
+        els.townInput.value = savedTown;
+      }
+
+      syncTown();
+      render();
+    })();
+  </script>
+</body>
+</html>
